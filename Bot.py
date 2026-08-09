@@ -17,7 +17,7 @@ def run_dummy_server():
     server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
     server.serve_forever()
 
-TOKEN = "8641919539:AAH8H59P18AF7aD0vNuNqkJ2491EDJwHxbo"
+TOKEN = "8641919539:AAEaHSF7z_JRudlxaP9OWm5i45j1FSFwnwE"
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
