@@ -27,6 +27,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'outtmpl': 'song.%(ext)s',
             'nocheckcertificate': True,
             'quiet': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios']
+                }
+            }
         }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
