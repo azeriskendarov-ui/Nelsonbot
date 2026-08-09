@@ -1,9 +1,9 @@
 import os
 import threading
-import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
+from pytubefix import YouTube
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -19,36 +19,19 @@ def run_dummy_server():
 TOKEN = "8641919539:AAHfRVMmyLuk2an48eGAbdoVQ6WGcXrEj1M"
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
+    text = update.message.text.strip()
     if "youtube.com" in text or "youtu.be" in text:
         msg = await update.message.reply_text("🎵 Müzik indiriliyor, lütfen bekleyin...")
         try:
-            api_url = "https://api.cobalt.tools/api/json"
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "url": text,
-                "downloadMode": "audio",
-                "audioFormat": "mp3"
-            }
-            response = requests.post(api_url, json=payload, headers=headers).json()
+            yt = YouTube(text, client='ANDROID')
+            audio_stream = yt.streams.filter(only_audio=True).first()
+            audio_stream.download(filename="song.mp3")
             
-            if response.get("status") in ["stream", "redirect"]:
-                audio_url = response.get("url")
-                audio_data = requests.get(audio_url).content
+            with open("song.mp3", "rb") as audio:
+                await update.message.reply_audio(audio, title=yt.title)
                 
-                with open("song.mp3", "wb") as f:
-                    f.write(audio_data)
-                    
-                with open("song.mp3", "rb") as audio:
-                    await update.message.reply_audio(audio)
-                    
-                os.remove("song.mp3")
-                await msg.delete()
-            else:
-                await msg.edit_text("❌ Müzik indirilemedi, lütfen farklı bir link deneyin.")
+            os.remove("song.mp3")
+            await msg.delete()
         except Exception as e:
             await msg.edit_text(f"❌ Hata oluştu: {e}")
 
