@@ -18,34 +18,29 @@ def run_dummy_server():
 
 TOKEN = "8641919539:AAHfRVMmyLuk2an48eGAbdoVQ6WGcXrEj1M"
 
-# YouTube IP engelini aşan Cobalt API sunucuları
-API_INSTANCES = [
-    "https://api.cobalt.tools/api/json",
-    "https://cobalt-api.kwippy.org/api/json",
-    "https://cobalt.qil.dev/api/json"
-]
+API_URL = "https://api.cobalt.tools/api/json"
 
 def get_audio_url(youtube_url):
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0"
+        "Origin": "https://cobalt.tools",
+        "Referer": "https://cobalt.tools/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
     payload = {
         "url": youtube_url,
-        "downloadMode": "audio",
         "audioFormat": "mp3"
     }
     
-    for instance in API_INSTANCES:
-        try:
-            res = requests.post(instance, json=payload, headers=headers, timeout=10)
-            if res.status_code == 200:
-                data = res.json()
-                if data.get("status") in ["tunnel", "redirect", "stream"]:
-                    return data.get("url")
-        except Exception:
-            continue
+    try:
+        res = requests.post(API_URL, json=payload, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            if data.get("status") in ["tunnel", "redirect", "stream"]:
+                return data.get("url")
+    except Exception:
+        pass
     return None
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,7 +51,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         audio_download_url = get_audio_url(text)
         
         if not audio_download_url:
-            await msg.edit_text("❌ Sunucu yoğunluğu nedeniyle müzik alınamadı. Lütfen birkaç saniye sonra tekrar deneyin.")
+            await msg.edit_text("❌ Müzik bağlantısı alınamadı, lütfen tekrar deneyin.")
             return
 
         try:
