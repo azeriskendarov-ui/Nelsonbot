@@ -1,9 +1,9 @@
 import os
 import threading
+import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
-import yt_dlp
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -22,29 +22,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if "youtube.com" in text or "youtu.be" in text:
         msg = await update.message.reply_text("🎵 Müzik indiriliyor, lütfen bekleyin...")
-        ydl_opts = {
-            'format': 'm4a/bestaudio/best',
-            'outtmpl': 'song.%(ext)s',
-            'nocheckcertificate': True,
-            'quiet': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android', 'ios']
-                }
-            }
-        }
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([text])
-            for file in os.listdir():
-                if file.startswith("song."):
-                    with open(file, 'rb') as audio:
-                        await update.message.reply_audio(audio)
-                    os.remove(file)
-                    break
-            await msg.delete()
+            api_url = "https://api.cobalt.tools/api/json"
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "url": text,
+                "downloadMode": "audio",
+                "audioFormat": "mp3"
+            }
+            response = requests.post(api_url, json=payload, headers=headers).json()
+            
+            if response.get("status") in ["stream", "redirect"]:
+                audio_url = response.get("url")
+                audio_data = requests.get(audio_url).content
+                
+                with open("song.mp3", "wb") as f:
+                    f.write(audio_data)
+                    
+                with open("song.mp3", "rb") as audio:
+                    await update.message.reply_audio(audio)
+                    
+                os.remove("song.mp3")
+                await msg.delete()
+            else:
+                await msg.edit_text("❌ Müzik indirilemedi, lütfen farklı bir link deneyin.")
         except Exception as e:
-            await update.message.reply_text(f"❌ Hata oluştu: {e}")
+            await msg.edit_text(f"❌ Hata oluştu: {e}")
 
 def main():
     threading.Thread(target=run_dummy_server, daemon=True).start()
